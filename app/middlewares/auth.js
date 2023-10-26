@@ -32,7 +32,7 @@ const verifyAccessToken = (req, res, next) => {
   try {
     // console.log(req.headers);
     const token = req.headers.authorization.split(" ")[1];
-    console.log(token);
+    // console.log(token);
     const decoded = jwt.verify(token, JWT_ACCESS_SECRET);
     // console.log("this is the decoded token", decoded);
     req.user = decoded;

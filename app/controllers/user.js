@@ -3,7 +3,7 @@ const { User, Exercise, Language, Questions, Answers } = require("../models"); /
 const { Success, HttpError } = require("../utils/httpResponse");
 const { generateToken } = require("../middlewares/auth");
 const { calculatePercentage } = require("../utils/utils");
-const { getProgressPerLanguage, getProgress } = require("../utils/progress");
+// const { getProgressPerLanguage, getProgress } = require("../utils/userProgress");
 
 // User registration route
 const register = async (req, res) => {

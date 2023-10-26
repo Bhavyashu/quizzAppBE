@@ -1,11 +1,10 @@
 const { reset } = require("nodemon");
 const { User, Questions, Language, Exercise } = require("../models/");
-const { addOptions } = require('../utils/addOptions');
-const { updateUserProgress } = require('../utils/progress');
+const { addOptions } = require('../utils/utils');
+const { updateUserProgress, getNextQuestion } = require('../utils/userProgress');
 
 const getLanguages = async (req, res) => {
   try {
-    console.log(req.user);
     const userId = req.user.id;
     if (userId) {
       // If user_id is provided in the query params, retrieve user's preferred languages
@@ -30,16 +29,18 @@ const getLanguages = async (req, res) => {
 
 const getExercises = async (req, res) => {
   try {
-    const {language} = req.body
-    if (language) {
+    // console.log("here");
+    const language_id  = req.query.language_id;
+    // console.log(language_id);
+    if (!language_id) {
       return res
         .status(400)
-        .json({ message: "Missing language name in req.body" });
+        .json({ message: "Missing language id in req.params" });
     }
     // console.log(language_id);
     // Retrieve all exercises (categories) for the specified language
     const exercises = await Exercise.find({ language: language_id });
-    console.log("these are the exercises", exercises);
+    // console.log("these are the exercises", exercises);
     res.json(exercises);
   } catch (error) {
     res.status(500).json({ error: error});
@@ -64,7 +65,7 @@ const getQuestons = async (req, res) => {
     });
     // console.log("questions", questions);
     questions.forEach((question)=>{
-        console.log(question.Answer);
+        // console.log(question.Answer);
         const nestedObject = {
             qid : question._id,
             Question: question.Question,
@@ -84,18 +85,28 @@ const verifyAns =  async (req, res) => {
     const userId = req.user.id;
     const {qid, answer} = req.body;
     const allQuestions = await Questions.find({}, '_id Answer Difficulty_level Exercise_id Language_id');
-    const indexOfQuestion = 0;
+    let isCorrect = false;
+    let questionDifficulty = 0;
+    let langId;
+    let excerId;
     let userExcercises;
-    let istrue = false;
-    allQuestions.forEach(async(question)=>{
+    allQuestions.forEach((question)=>{
         if(qid == question._id){
-            istrue = true;
-            userExcercises = await updateUserProgress(userId,question.Language_id,question.Exercise_id,question._id);
-            console.log(userExcercises.completedQuestions);
+            questionDifficulty = question.Difficulty_level;
+            langId = question.Language_id,
+            excerId = question.Exercise_id
+            if(answer == question.Answer){
+                isCorrect = true;
+            }
         }
     });
+    // console.log(` THIS IS THE EXCER ID ${excerId}`);
+    completedQuestions = await updateUserProgress(isCorrect,userId,langId,excerId,qid);
+    console.log("this is the useer questions \n ", completedQuestions);
+    const response = getNextQuestion(isCorrect, questionDifficulty, completedQuestions, allQuestions);
+
     // console.log(completedQuestions);
-    res.json(istrue);
+    res.json(response);
     // console.log(ans);
     // res.send("fsf");
 };

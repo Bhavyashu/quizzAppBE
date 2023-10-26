@@ -1,5 +1,6 @@
 const mongoose = require("mongoose");
 const { User, Exercise, Questions, Language, Answers, Progress } = require("../models");
+const { addOptions } = require("./utils");
 
 const getProgressPerLanguage = async (userId, langugeId) => {
   try{
@@ -113,10 +114,9 @@ const getExcercisesObject = async(langugeId) =>{
 // }
 
 
-const updateUserProgress = async (userId, languageId, exerciseId, questionId) => {
+const updateUserProgress = async (isCorrect, userId, languageId, exerciseId, questionId) => {
   try {
     let userPerformance = await Progress.findOne({ user: userId });
-    console.log(JSON.parse(JSON.stringify(userPerformance)));
 
     if (!userPerformance) {
       // If the user's performance data doesn't exist, you can create it.
@@ -138,26 +138,64 @@ const updateUserProgress = async (userId, languageId, exerciseId, questionId) =>
       languageProgress.exercises.push(exerciseProgress);
     }
 
-    if (!exerciseProgress.completedQuestions.includes(questionId)) {
+    if (!exerciseProgress.completedQuestions.includes(questionId) && isCorrect) {
+      console.log(`=========================    new quesiton correct answer  =======================================`);
       exerciseProgress.completedQuestions.push(questionId);
     }
 
     // Save the updated performance data back to the database
-    const savedUserPerformance = await userPerformance.save();
+    await userPerformance.save();
+    // console.log(savedUserPerformance);
 
     // Return the array of completed questions for the specified exerciseId
-    const completedQuestionsForExercise = exerciseProgress.completedQuestions;
-    return {completedQuestions: completedQuestionsForExercise };
+    const completedQuestions = exerciseProgress.completedQuestions;
+    return  completedQuestions;
   } catch (error) {
     // Handle errors
     console.error(error);
   }
 }
 
+const getNextQuestion = async(isCorrect, questionDifficulty, userExcercises, allQuestions) =>{
+  // questionDifficulty = 5;
+  // console.log(` difficulty Before : ${questionDifficulty} \n`);
+  // console.log(userExcercises);
+  const questionArray = [];
+  questionDifficulty = (questionDifficulty += (isCorrect)?1 :-1);
+  questionDifficulty = (questionDifficulty<=0)?1:(questionDifficulty>5)?5:questionDifficulty;
 
+  if(userExcercises.length == allQuestions.length){
+    return [];
+  }
+
+  while(!questionArray.length){
+    allQuestions.forEach((obj) => {
+      if(!userExcercises.includes(obj._id) && obj.Difficulty_level >= questionDifficulty){
+        const nextQuestion = {
+          qid : obj._id,
+          Question : obj.Question,
+          Answer: addOptions([obj.Answer]),
+        }
+        questionArray.push(nextQuestion);
+      }
+      questionDifficulty--;
+    });
+  }
+  // allQuestions.forEach((obj) => {
+  //   if(!userExcercises.includes(obj._id) ){
+  //     console.log(true);
+  //   }
+  // });
+
+  // forEach
+  console.log(` difficulty After : ${questionDifficulty} \n`);
+
+  return questionArray;
+};
 
 module.exports = {
     getProgressPerLanguage,
     getProgress,
-    updateUserProgress
+    updateUserProgress,
+    getNextQuestion,
 }
