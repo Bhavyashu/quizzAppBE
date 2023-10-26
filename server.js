@@ -24,32 +24,49 @@ app.use('/api/v1', routes);
 app.use(errorHandler);
 
 // require('./app/error/handleUncaughtErrors');
-app.post('/addl', async (req, res) => {
-  try {
-    // Get the language string from req.body
-    const name = req.body.language;
-    console.log(name);
 
-    // Add your asynchronous logic here, e.g., working with promises
-    let lang =  new Language({
-      name,
-    })
-    lang = await lang.save();
-    console.log("lonageu created? ", lang);
-    
-    if (lang) {
-      // Send a success response
-      res.status(200).json({ success: true, message: 'Language added successfully', data : lang });
-    } else {
-      // Send a failure response
-      res.status(400).json({ success: false, message: 'Failed to add language' });
-    }
-  } catch (error) {
-    // Handle any errors that may occur during processing
-    console.error('An error occurred:', error);
-    res.status(500).json({ success: false, message: 'Internal server error' });
+
+app.use((req, res, next) => {
+  const allowedOrigins = ['http://localhost:3000'];
+  const origin = req.headers.origin;
+
+  if (allowedOrigins.includes(origin)) {
+    res.header('Access-Control-Allow-Origin', origin);
   }
+
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization'); // Add 'Authorization'
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS'); // Add any other HTTP methods you need
+
+  next();
 });
+
+
+// app.post('/addl', async (req, res) => {
+//   try {
+//     // Get the language string from req.body
+//     const name = req.body.language;
+//     console.log(name);
+
+//     // Add your asynchronous logic here, e.g., working with promises
+//     let lang =  new Language({
+//       name,
+//     })
+//     lang = await lang.save();
+//     console.log("lonageu created? ", lang);
+    
+//     if (lang) {
+//       // Send a success response
+//       res.status(200).json({ success: true, message: 'Language added successfully', data : lang });
+//     } else {
+//       // Send a failure response
+//       res.status(400).json({ success: false, message: 'Failed to add language' });
+//     }
+//   } catch (error) {
+//     // Handle any errors that may occur during processing
+//     console.error('An error occurred:', error);
+//     res.status(500).json({ success: false, message: 'Internal server error' });
+//   }
+// });
 // const userId = '6537ddb85a080d9f8b754c7b';
 // const questArray  = [
 //   {
