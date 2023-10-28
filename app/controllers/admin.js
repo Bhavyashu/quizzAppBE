@@ -3,7 +3,7 @@ const { User, Questions, Language, Exercise } = require("../models/");
 
 const getLanguages = async (req, res) => {
   try {
-      const languages = await Language.find();
+      const languages = await Language.find().select("_id name");
       res.json(languages);
   } catch (error) {
     res.status(500).json({ error: "Internal server error" });

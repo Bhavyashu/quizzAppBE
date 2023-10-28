@@ -18,7 +18,7 @@ const generateToken = (user, tokenType) => {
   const expiry =
     (tokenType === "refresh" ? JWT_REFRESH_EXPIRY : JWT_ACCESS_EXPIRY) || "1d";
   // console.log(`this is the secret : ${secret}, this is the expiry : ${expiry}`);
-  const token = jwt.sign({ id: user.id, user_type: user.password }, secret, {
+  const token = jwt.sign({ id: user.id, name: user.name,  user_type: user.password }, secret, {
     expiresIn: expiry,
   });
 

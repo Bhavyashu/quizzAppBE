@@ -11,7 +11,8 @@ const {getLanguagesId} = require("../utils/user");
 const register = async (req, res) => {
   try {
     const { name, email, password, preferred_languages} = req.body;
-    const LanguagesId = await getLanguagesId(preferred_languages);
+    console.log(preferred_languages);
+    // const LanguagesId = await getLanguagesId(preferred_languages);
     // Hash the password
     const saltRounds = 10;
     const hashedPassword = await bcrypt.hash(password, saltRounds);
@@ -21,10 +22,12 @@ const register = async (req, res) => {
       email,
       password: hashedPassword, // Assuming preferred_language_ids is an array of valid language ObjectIDs
       score: 0,
-      preffered_languge: LanguagesId.map((languageId) => ({
+      preffered_languge: preferred_languages.map((languageId) => ({
         language: languageId,
       })),
     });
+
+    console.log(newUser);
 
     await newUser.save();
 
@@ -120,17 +123,29 @@ const addLanguage = async (req, res) => {
     console.log(`user id ${userId}`);
 
     const user = await User.findById(userId);
-    // Add the new preferred language to the user's profile
-    user.preffered_languge.push({
-      language: langId,
-    }),
+
+    // Check if the language already exists in the user's preffered_languge array
+    const languageExists = user.preffered_languge.some((lang) => lang.language.equals(langId));
+
+    if (!languageExists) {
+      // Add the new preferred language to the user's profile
+      user.preffered_languge.push({
+        language: langId,
+      });
+
       // Save the user's profile with the updated language
       await user.save();
+
+      res.status(200).json({ message: "Language added successfully." });
+    } else {
+      res.status(400).json({ message: "Language already exists in the user's profile." });
+    }
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: "Login failed." });
+    res.status(500).json({ message: "Add language failed." });
   }
 };
+
 
 const progress = async (req, res) => {
   try {
