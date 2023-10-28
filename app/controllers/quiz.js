@@ -122,7 +122,7 @@ const getQuestion = asyncHandler(async (req, res, next) => {
 const verifyAns = asyncHandler(async (req, res, next) => {
   const userId = req.user.id;
   const { qid, answer, excerId, difficulty, langId } = req.body;
-  console.log("--------------------------------",qid, answer, excerId, difficulty, langId, "--------------------------------");
+  // console.log("--------------------------------",qid, answer, excerId, difficulty, langId, "--------------------------------");
   // console.log(typeof qid === "string");
   const allQuestions = await getQuestionsWithAnswers(excerId);
   console.log(allQuestions.length);
@@ -131,9 +131,7 @@ const verifyAns = asyncHandler(async (req, res, next) => {
   for (let i = 0; i < allQuestions.length; i++) {
     const obj = allQuestions[i];
     if (obj._id == qid) {
-      console.log(
-        `this is the user answer ${answer} this is the real answer ${obj.Answer}`
-      );
+      
       if (obj.Answer == answer) {
         updateScore(userId, langId, obj.Difficulty_level);
         isCorrect = true;
