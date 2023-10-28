@@ -70,6 +70,8 @@ const addOptions = function(options){
   const randomWords = getRandomWordsWithoutRepetition(wordsArray, 3);
 
   options = [...options, ...randomWords];
+  
+  // this will randomly swap the right answer to an index inside the array
   const swapIndex = getRandomIndex()
   const tempAnswer = options[0];
   options[0] = options[swapIndex];

@@ -4,7 +4,7 @@ const { User, Questions, Language, Exercise } = require("../models");
 router.use("/user", require("./user"));
 router.use('/quiz', require('./quiz'));
 router.use('/admin', require('./admin'));
-
+router.use('/leaderboard', require('./leaderboard'));
 // Import your Mongoose models (Language, User, Exercise, Questions)
 
 // 1. Get Languages

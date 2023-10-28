@@ -1,4 +1,8 @@
 const mongoose = require("mongoose");
+const asyncHandler = require("express-async-handler");
+const { Success, HttpError } = require("../utils/httpResponse");
+const { errors: err } = require("../error/errors");
+
 const {
   User,
   Exercise,
@@ -122,14 +126,13 @@ const getExcercisesObject = async (langugeId) => {
 //     }
 // }
 
-const getCompletedQuestions = async (
+const getCompletedQuestions = asyncHandler(async (
   userId,
   languageId,
   exerciseId,
   isCorrect = false,
   questionId = false
 ) => {
-  try {
     let userPerformance = await Progress.findOne({ user: userId });
 
     if (!userPerformance) {
@@ -172,30 +175,22 @@ const getCompletedQuestions = async (
     // Return the array of completed questions for the specified exerciseId
     const completedQuestions = exerciseProgress.completedQuestions;
     return completedQuestions;
-  } catch (error) {
-    // Handle errors
-    console.error(error);
-  }
-};
+});
 
-const getNextQuestion = async (
+
+const getNextQuestion = asyncHandler(async (
   isCorrect,
   questionDifficulty,
   completedQuestions,
   allQuestions
 ) => {
-  // questionDifficulty = 5;
-  // console.log(` difficulty Before : ${questionDifficulty} \n`);
-  // console.log(userExcercises);
+
   const questionArray = [];
   if (completedQuestions.length == allQuestions.length) {
     return questionArray;
   }
-  console.log(
-    `this is the array length for userCompletedQuestions : ${completedQuestions.length} and all questions : ${allQuestions.length}`
-  );
 
-  // console.log(questionDifficulty);
+  // if the answer is correct / wrong manipulate the answer
   questionDifficulty = questionDifficulty += isCorrect ? 1 : -1;
   questionDifficulty =
     questionDifficulty <= 0
@@ -205,15 +200,14 @@ const getNextQuestion = async (
       : questionDifficulty;
 
   const difficultyLevelMap = {};
+
   // Build the difficulty level map TC =  O(5*m))
   for (let i = 1; i <= 5; i++) {
     difficultyLevelMap[i] = allQuestions
       .filter((question) => question.Difficulty_level === i)
       .filter((question) => !completedQuestions.includes(question._id));
   }
-  // console.log(`this is the map value at the diff level : ${questionDifficulty} : ${difficultyLevelMap[questionDifficulty]}`);
 
-  // console.log(`this is the hashmap for the unanswered questions : ${console.log(JSON.stringify(difficultyLevelMap, null, 2))} \n`);
 
   // Check for available questions at the specified difficulty level
   if (difficultyLevelMap[questionDifficulty].length > 0) {
@@ -226,40 +220,38 @@ const getNextQuestion = async (
   const originalDifficulty = questionDifficulty;
   let difficultyIncrement = isCorrect ? +1 : -1;
 
+
+  // this while loop will iterate 5 times at it will keep incrementing/decrementing the difficulty and then from the map get the 
   while (true) {
     questionDifficulty += difficultyIncrement;
-    // console.log("this is the modified difficulty level", questionDifficulty, "\n" );
 
+    // if we have reached where the questionDifficulty is <0 then the user has answered all the questions who's difficulty is less than the original difficulty
     if (questionDifficulty < 1) {
       difficultyIncrement = 1;
       questionDifficulty = originalDifficulty + difficultyIncrement;
     }
 
+    // if we have reached where the questionDifficulty is >5 that means the user has have answered all the questions who's difficulty is greater than the original difficulty
     if (questionDifficulty > 5) {
       difficultyIncrement = -1;
       questionDifficulty = originalDifficulty + difficultyIncrement;
     }
 
+    // if there exists an unanswered question for this qifficulty level then get the question details and send the array 
     if (difficultyLevelMap[questionDifficulty].length > 0) {
-      // console.log(`\n Previouslevel : ${questionDifficulty-1} unanswered questions : ${difficultyLevelMap[questionDifficulty+(-1].length} \n`);
-      console.log(
-        `\n currentlevel : ${questionDifficulty} unanswered questions : ${difficultyLevelMap[questionDifficulty].length} \n`
-      );
-      // console.log(`\n nextlevel : ${questionDifficulty+1} unanswered questions : ${difficultyLevelMap[questionDifficulty+1].length} \n`);
       const obj = difficultyLevelMap[questionDifficulty][0].toObject();
       obj.Answer = addOptions([obj.Answer]);
       questionArray.push(obj);
       return questionArray;
     }
   }
-  return questionArray;
-  console.log("pun hai idhardiculty");
-};
+});
 
-async function updateScore(userId, languageId, scoreIncrement) {
-  try {
+
+const updateScore = asyncHandler(async(userId, languageId, addPoints) => {
+
+
     const user = await User.findById(userId);
-    console.log(user);
     const { total_score } = await Language.findById(languageId);
 
     if (!user) {
@@ -275,63 +267,51 @@ async function updateScore(userId, languageId, scoreIncrement) {
     }
 
     // Update the language-specific score
-    preferredLanguageEntry.score += scoreIncrement;
+    preferredLanguageEntry.score += addPoints;
 
     const user_score = preferredLanguageEntry.score;
-    // Define proficiency level labels
-    const proficiencyLabels = [
-      "Beginner",
-      "Novice",
-      "Intermediate",
-      "Advanced",
-      "Expert",
-    ];
-
-    // Calculate the range size based on the total_score
-    const rangeSize = total_score / proficiencyLabels.length;
-
     // Calculate the user's proficiency level
-    let user_proficiency;
-
-    // Find the user's proficiency level based on their score
-    for (let i = 0; i < proficiencyLabels.length; i++) {
-      const rangeStart = i * rangeSize;
-      const rangeEnd = (i + 1) * rangeSize;
-
-      if (user_score >= rangeStart && user_score < rangeEnd) {
-        user_proficiency = proficiencyLabels[i];
-        break;
-      }
-    }
-
-    console.log(`User Score: ${user_score}`);
-    console.log(`User Proficiency: ${user_proficiency}`);
+    const user_proficiency = updateProficiency(user_score, total_score);
 
     // updating the leaderboard score
-    console.log(
-      `==================This is the updated score ${
-        preferredLanguageEntry.score
-      }==============================`
-    );
 
-
-    // updateLeaderBoardScore(userId, languageId, preferredLanguageEntry.score);
-
-    // Update the overall score directly
-    console.log(preferredLanguageEntry);
     preferredLanguageEntry.proficiency=user_proficiency;
-    console.log(preferredLanguageEntry);
-    user.over_all_score += scoreIncrement;
+    user.over_all_score += addPoints;
 
 
     // Save the user object with the updated scores
     await user.save();
+});
 
-    // console.log('Scores updated successfully');
-  } catch (error) {
-    console.error("Error updating scores:", error.message);
+
+const updateProficiency = (user_score, total_score)=>{
+  const proficiencyLabels = [
+    "Beginner",
+    "Novice",
+    "Intermediate",
+    "Advanced",
+    "Expert",
+  ];
+
+  // Calculate the range size based on the total_score
+  const rangeSize = total_score / proficiencyLabels.length;
+
+  // Calculate the user's proficiency level
+  let proficiencyLabel;
+
+  // Find the user's proficiency level based on their score
+  for (let i = 0; i < proficiencyLabels.length; i++) {
+    const rangeStart = i * rangeSize;
+    const rangeEnd = (i + 1) * rangeSize;
+
+    if (user_score >= rangeStart && user_score < rangeEnd) {
+      proficiencyLabel = proficiencyLabels[i];
+      break;
+    }
   }
-}
+  return proficiencyLabel
+};
+
 
 // const getNextQuestion = async (isCorrect, questionDifficulty, completedQuestions, allQuestions) => {
 //   if (completedQuestions.length === allQuestions.length) {
