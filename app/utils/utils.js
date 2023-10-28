@@ -69,7 +69,6 @@ function getRandomWordsWithoutRepetition(array, numWords) {
 const addOptions = function(options){
   const randomWords = getRandomWordsWithoutRepetition(wordsArray, 3);
   options = [...options, ...randomWords];
-  console.log("these are options",options);
   return options;
 }
 

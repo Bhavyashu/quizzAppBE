@@ -6,7 +6,7 @@ const _controller = require('../controllers/quiz');
 
 router.get('/languages', verifyAccessToken, _controller.getLanguages );
 router.get('/exercises',verifyAccessToken, _controller.getExercises );
-router.get('/questions',verifyAccessToken, _controller.getQuestons );
+router.get('/question',verifyAccessToken, _controller.getQuestion );
 router.post('/verifyAnswer', verifyAccessToken, _controller.verifyAns);
 // router.get('/verifyAnswer',verifyAccessToken, _controller.verifyAnswer);
 // router.get('/nextQuestion',verifyAccessToken, _controller.nextQuestion);

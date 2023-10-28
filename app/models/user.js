@@ -11,7 +11,7 @@ const userSchema = new mongoose.Schema({
       {
         language: { type: mongoose.Schema.Types.ObjectId, ref: Language },
         score: { type: Number, default: 0 },
-        proficiency: { type: String, enum: ['beginner', 'intermediate', 'advanced'], default: 'beginner' }
+        proficiency: { type: String, default: 'Beginner' }
       }
     ]
   });

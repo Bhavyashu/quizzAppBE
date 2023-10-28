@@ -1,9 +1,17 @@
 const mongoose = require("mongoose");
-const { User, Exercise, Questions, Language, Answers, Progress } = require("../models");
+const {
+  User,
+  Exercise,
+  Questions,
+  Language,
+  Answers,
+  Progress,
+} = require("../models");
 const { addOptions } = require("./utils");
 
+const answerCache = {};
 const getProgressPerLanguage = async (userId, langugeId) => {
-  try{
+  try {
     const pipeline = [
       {
         $match: {
@@ -31,10 +39,11 @@ const getProgressPerLanguage = async (userId, langugeId) => {
       // Lookup the Exercise name by Exercise_id
       const exerciseData = await Exercise.findOne(
         { _id: exerciseId },
-        { name: 1, _id: 0, Questions : 1 }
+        { name: 1, _id: 0, Questions: 1 }
       );
 
-      progressObject[exerciseData.name] = ((item.count / exerciseData.Questions)*100).toFixed(2)+'%';
+      progressObject[exerciseData.name] =
+        ((item.count / exerciseData.Questions) * 100).toFixed(2) + "%";
     }
 
     // console.log("Exercise Progress:", progressObject);
@@ -44,42 +53,42 @@ const getProgressPerLanguage = async (userId, langugeId) => {
   }
 };
 
-const getProgress = async(userId, LanguagesId) => {
+const getProgress = async (userId, LanguagesId) => {
   const respObj = {};
   const progressPromises = LanguagesId.map((languageId) => {
-    return getProgressPerLanguage(userId,languageId);
+    return getProgressPerLanguage(userId, languageId);
   });
 
-    try {
-      const results = await Promise.all(progressPromises);
-      // const responseObj = {};
-      for (let i = 0; i < LanguagesId.length; i++) {
-        getExcercisesObject(LanguagesId[i]);
-        const LanguageName = await Language.findOne(
-          { _id: LanguagesId[i] },
-          { name: 1, _id: 0 }
-        );
-        respObj[LanguageName.name] = results[i];
-      }
-      return respObj;
-      // console.log("this is the final one \n",responseObj);
-    } catch (error) {
-      console.error("Error calculating progress:", error);
+  try {
+    const results = await Promise.all(progressPromises);
+    // const responseObj = {};
+    for (let i = 0; i < LanguagesId.length; i++) {
+      getExcercisesObject(LanguagesId[i]);
+      const LanguageName = await Language.findOne(
+        { _id: LanguagesId[i] },
+        { name: 1, _id: 0 }
+      );
+      respObj[LanguageName.name] = results[i];
     }
+    return respObj;
+    // console.log("this is the final one \n",responseObj);
+  } catch (error) {
+    console.error("Error calculating progress:", error);
+  }
 };
 
-const getExcercisesObject = async(langugeId) =>{
+const getExcercisesObject = async (langugeId) => {
   const excercises = await Exercise.find(
-    {language : langugeId},
+    { language: langugeId },
     { name: 1, _id: 1 }
-    );
-  console.log("This is the eccercises map",excercises);
+  );
+  console.log("This is the eccercises map", excercises);
 };
 
-// const updateUserProgress = async(userId, languageId, exerciseId, questionId) =>{
+// const getCompletedQuestions = async(userId, languageId, exerciseId, questionId) =>{
 //     try {
 //       let userPerformance = await Progress.findOne({ user: userId });
-  
+
 //       if (!userPerformance) {
 //         // If the user's performance data doesn't exist, you can create it.
 //         userPerformance = new Progress({
@@ -87,23 +96,23 @@ const getExcercisesObject = async(langugeId) =>{
 //           languageProgress: [],
 //         });
 //       }
-  
+
 //       let languageProgress = userPerformance.languageProgress.find(lp => lp.language.equals(languageId));
 //       if (!languageProgress) {
 //         languageProgress = { language: languageId, exercises: [] };
 //         userPerformance.languageProgress.push(languageProgress);
 //       }
-  
+
 //       let exerciseProgress = languageProgress.exercises.find(ep => ep.exercise.equals(exerciseId));
 //       if (!exerciseProgress) {
 //         exerciseProgress = { exercise: exerciseId, completedQuestions: [] };
 //         languageProgress.exercises.push(exerciseProgress);
 //       }
-  
+
 //       if (!exerciseProgress.completedQuestions.includes(questionId)) {
 //         exerciseProgress.completedQuestions.push(questionId);
 //       }
-  
+
 //       // Save the updated performance data back to the database
 //       const savedUserPerformance = await userPerformance.save();
 //       return savedUserPerformance;
@@ -113,8 +122,13 @@ const getExcercisesObject = async(langugeId) =>{
 //     }
 // }
 
-
-const updateUserProgress = async (isCorrect, userId, languageId, exerciseId, questionId) => {
+const getCompletedQuestions = async (
+  userId,
+  languageId,
+  exerciseId,
+  isCorrect = false,
+  questionId = false
+) => {
   try {
     let userPerformance = await Progress.findOne({ user: userId });
 
@@ -126,76 +140,259 @@ const updateUserProgress = async (isCorrect, userId, languageId, exerciseId, que
       });
     }
 
-    let languageProgress = userPerformance.languageProgress.find(lp => lp.language.equals(languageId));
+    let languageProgress = userPerformance.languageProgress.find((lp) =>
+      lp.language.equals(languageId)
+    );
     if (!languageProgress) {
       languageProgress = { language: languageId, exercises: [] };
       userPerformance.languageProgress.push(languageProgress);
     }
 
-    let exerciseProgress = languageProgress.exercises.find(ep => ep.exercise.equals(exerciseId));
+    let exerciseProgress = languageProgress.exercises.find((ep) =>
+      ep.exercise.equals(exerciseId)
+    );
     if (!exerciseProgress) {
       exerciseProgress = { exercise: exerciseId, completedQuestions: [] };
       languageProgress.exercises.push(exerciseProgress);
     }
 
-    if (!exerciseProgress.completedQuestions.includes(questionId) && isCorrect) {
-      console.log(`=========================    new quesiton correct answer  =======================================`);
+    if (
+      !exerciseProgress.completedQuestions.includes(questionId) &&
+      isCorrect &&
+      questionId
+    ) {
+      // console.log(`=========================    new quesiton correct answer  =======================================`);
       exerciseProgress.completedQuestions.push(questionId);
     }
 
     // Save the updated performance data back to the database
-    await userPerformance.save();
+    userPerformance.save();
     // console.log(savedUserPerformance);
 
     // Return the array of completed questions for the specified exerciseId
     const completedQuestions = exerciseProgress.completedQuestions;
-    return  completedQuestions;
+    return completedQuestions;
   } catch (error) {
     // Handle errors
     console.error(error);
   }
-}
+};
 
-const getNextQuestion = async(isCorrect, questionDifficulty, userExcercises, allQuestions) =>{
+const getNextQuestion = async (
+  isCorrect,
+  questionDifficulty,
+  completedQuestions,
+  allQuestions
+) => {
   // questionDifficulty = 5;
   // console.log(` difficulty Before : ${questionDifficulty} \n`);
   // console.log(userExcercises);
   const questionArray = [];
-  questionDifficulty = (questionDifficulty += (isCorrect)?1 :-1);
-  questionDifficulty = (questionDifficulty<=0)?1:(questionDifficulty>5)?5:questionDifficulty;
+  if (completedQuestions.length == allQuestions.length) {
+    return questionArray;
+  }
+  console.log(
+    `this is the array length for userCompletedQuestions : ${completedQuestions.length} and all questions : ${allQuestions.length}`
+  );
 
-  if(userExcercises.length == allQuestions.length){
-    return [];
+  // console.log(questionDifficulty);
+  questionDifficulty = questionDifficulty += isCorrect ? 1 : -1;
+  questionDifficulty =
+    questionDifficulty <= 0
+      ? 1
+      : questionDifficulty > 5
+      ? 5
+      : questionDifficulty;
+
+  const difficultyLevelMap = {};
+  // Build the difficulty level map TC =  O(5*m))
+  for (let i = 1; i <= 5; i++) {
+    difficultyLevelMap[i] = allQuestions
+      .filter((question) => question.Difficulty_level === i)
+      .filter((question) => !completedQuestions.includes(question._id));
+  }
+  // console.log(`this is the map value at the diff level : ${questionDifficulty} : ${difficultyLevelMap[questionDifficulty]}`);
+
+  // console.log(`this is the hashmap for the unanswered questions : ${console.log(JSON.stringify(difficultyLevelMap, null, 2))} \n`);
+
+  // Check for available questions at the specified difficulty level
+  if (difficultyLevelMap[questionDifficulty].length > 0) {
+    const obj = difficultyLevelMap[questionDifficulty][0].toObject();
+    obj.Answer = addOptions([obj.Answer]);
+    questionArray.push(obj);
+    return questionArray;
   }
 
-  while(!questionArray.length){
-    allQuestions.forEach((obj) => {
-      if(!userExcercises.includes(obj._id) && obj.Difficulty_level >= questionDifficulty){
-        const nextQuestion = {
-          qid : obj._id,
-          Question : obj.Question,
-          Answer: addOptions([obj.Answer]),
-        }
-        questionArray.push(nextQuestion);
-      }
-      questionDifficulty--;
-    });
+  const originalDifficulty = questionDifficulty;
+  let difficultyIncrement = isCorrect ? +1 : -1;
+
+  while (true) {
+    questionDifficulty += difficultyIncrement;
+    // console.log("this is the modified difficulty level", questionDifficulty, "\n" );
+
+    if (questionDifficulty < 1) {
+      difficultyIncrement = 1;
+      questionDifficulty = originalDifficulty + difficultyIncrement;
+    }
+
+    if (questionDifficulty > 5) {
+      difficultyIncrement = -1;
+      questionDifficulty = originalDifficulty + difficultyIncrement;
+    }
+
+    if (difficultyLevelMap[questionDifficulty].length > 0) {
+      // console.log(`\n Previouslevel : ${questionDifficulty-1} unanswered questions : ${difficultyLevelMap[questionDifficulty+(-1].length} \n`);
+      console.log(
+        `\n currentlevel : ${questionDifficulty} unanswered questions : ${difficultyLevelMap[questionDifficulty].length} \n`
+      );
+      // console.log(`\n nextlevel : ${questionDifficulty+1} unanswered questions : ${difficultyLevelMap[questionDifficulty+1].length} \n`);
+      const obj = difficultyLevelMap[questionDifficulty][0].toObject();
+      obj.Answer = addOptions([obj.Answer]);
+      questionArray.push(obj);
+      return questionArray;
+    }
   }
-  // allQuestions.forEach((obj) => {
-  //   if(!userExcercises.includes(obj._id) ){
-  //     console.log(true);
-  //   }
-  // });
-
-  // forEach
-  console.log(` difficulty After : ${questionDifficulty} \n`);
-
   return questionArray;
+  console.log("pun hai idhardiculty");
 };
 
-module.exports = {
-    getProgressPerLanguage,
-    getProgress,
-    updateUserProgress,
-    getNextQuestion,
+async function updateScore(userId, languageId, scoreIncrement) {
+  try {
+    const user = await User.findById(userId);
+    console.log(user);
+    const { total_score } = await Language.findById(languageId);
+
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    const preferredLanguageEntry = user.preffered_languge.find(
+      (entry) => entry.language.toString() === languageId.toString()
+    );
+
+    if (!preferredLanguageEntry) {
+      throw new Error("Preferred language not found");
+    }
+
+    // Update the language-specific score
+    preferredLanguageEntry.score += scoreIncrement;
+
+    const user_score = preferredLanguageEntry.score;
+    // Define proficiency level labels
+    const proficiencyLabels = [
+      "Beginner",
+      "Novice",
+      "Intermediate",
+      "Advanced",
+      "Expert",
+    ];
+
+    // Calculate the range size based on the total_score
+    const rangeSize = total_score / proficiencyLabels.length;
+
+    // Calculate the user's proficiency level
+    let user_proficiency;
+
+    // Find the user's proficiency level based on their score
+    for (let i = 0; i < proficiencyLabels.length; i++) {
+      const rangeStart = i * rangeSize;
+      const rangeEnd = (i + 1) * rangeSize;
+
+      if (user_score >= rangeStart && user_score < rangeEnd) {
+        user_proficiency = proficiencyLabels[i];
+        break;
+      }
+    }
+
+    console.log(`User Score: ${user_score}`);
+    console.log(`User Proficiency: ${user_proficiency}`);
+
+    // updating the leaderboard score
+    console.log(
+      `==================This is the updated score ${
+        preferredLanguageEntry.score
+      }==============================`
+    );
+
+
+    // updateLeaderBoardScore(userId, languageId, preferredLanguageEntry.score);
+
+    // Update the overall score directly
+    console.log(preferredLanguageEntry);
+    preferredLanguageEntry.proficiency=user_proficiency;
+    console.log(preferredLanguageEntry);
+    user.over_all_score += scoreIncrement;
+
+
+    // Save the user object with the updated scores
+    await user.save();
+
+    // console.log('Scores updated successfully');
+  } catch (error) {
+    console.error("Error updating scores:", error.message);
+  }
 }
+
+// const getNextQuestion = async (isCorrect, questionDifficulty, completedQuestions, allQuestions) => {
+//   if (completedQuestions.length === allQuestions.length) {
+//     return questionArray;
+//   }
+// }
+
+//   // console.log(questionDifficulty);
+
+//     for (let i = 0; i < allQuestions.length; i++) {
+//       const obj = allQuestions[i];
+//       // console.log("this is obj",obj);
+//       if (!userExcercises.includes(obj._id) && obj.Difficulty_level == questionDifficulty) {
+//         const nextQuestion = {
+//           qid: obj._id,
+//           Question: obj.Question,
+//           Answer: addOptions([obj.Answer]),
+//           Difficulty_level: obj.Difficulty_level
+//         };
+//         questionArray.push(nextQuestion);
+//         break;
+//       }
+//     };
+//     questionDifficulty--;
+//   }
+//   // allQuestions.forEach((obj) => {
+//   //   if(!userExcercises.includes(obj._id) ){
+//   //     console.log(true);
+//   //   }
+//   // });
+
+//   // forEach
+//   // console.log(` difficulty After : ${questionDifficulty} \n`);
+//   console.log("tis is the question array", questionArray.length);
+//   return questionArray;
+// };
+
+async function getQuestionsWithAnswers(eid) {
+  if (answerCache[eid]) {
+    // Return cached data if available
+    return answerCache[eid];
+  } else {
+    // Fetch data from the database
+    const allQuestions = await Questions.find(
+      { Exercise_id: eid },
+      "_id Question Answer Difficulty_level Exercise_id Language_id"
+    ).sort({ Difficulty_level: 1 });
+
+    // Cache the answers
+    answerCache[eid] = allQuestions;
+
+    return allQuestions;
+  }
+}
+
+module.exports = {
+  getProgressPerLanguage,
+  getProgress,
+  getExcercisesObject,
+  getCompletedQuestions,
+  getNextQuestion,
+  getQuestionsWithAnswers,
+  updateScore,
+};

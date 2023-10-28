@@ -6,7 +6,20 @@ const languageSchema = mongoose.Schema({
     type: String,
     required: true,
     unique: true,
-  },});
+  },
+  exercises : {
+    type: Number, 
+    default: 0
+  },
+  total_questions : {
+    type: Number, 
+    default: 0
+  },
+  total_score : {
+    type: Number, 
+    default: 0
+  }
+});
 
 const Language = mongoose.model('Languages', languageSchema);
 

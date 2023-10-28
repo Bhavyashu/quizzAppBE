@@ -3,13 +3,15 @@ const { User, Exercise, Language, Questions, Answers } = require("../models"); /
 const { Success, HttpError } = require("../utils/httpResponse");
 const { generateToken } = require("../middlewares/auth");
 const { calculatePercentage } = require("../utils/utils");
+const { getLanguages } = require("./quiz");
+const {getLanguagesId} = require("../utils/user");
 // const { getProgressPerLanguage, getProgress } = require("../utils/userProgress");
 
 // User registration route
 const register = async (req, res) => {
   try {
-    const { name, email, password, preferred_language_ids } = req.body;
-
+    const { name, email, password, preferred_languages} = req.body;
+    const LanguagesId = await getLanguagesId(preferred_languages);
     // Hash the password
     const saltRounds = 10;
     const hashedPassword = await bcrypt.hash(password, saltRounds);
@@ -19,7 +21,7 @@ const register = async (req, res) => {
       email,
       password: hashedPassword, // Assuming preferred_language_ids is an array of valid language ObjectIDs
       score: 0,
-      preffered_languge: preferred_language_ids.map((languageId) => ({
+      preffered_languge: LanguagesId.map((languageId) => ({
         language: languageId,
       })),
     });
@@ -41,7 +43,7 @@ const register = async (req, res) => {
 const login = async (req, res) => {
   try {
     const { email, password } = req.body;
-    console.log(email, password);
+    // console.log(email, password);
     const responseObj = {};
 
     // Find the user by email
@@ -60,7 +62,7 @@ const login = async (req, res) => {
     //   path: 'preffered_languge.language',
     //   select: 'name -_id', // Include only the "name" field
     // })
-    console.log(user);
+    // console.log(user);
     if (!user) {
       return res.status(400).json({ message: "User not found." });
     }

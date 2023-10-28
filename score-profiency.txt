@@ -1,0 +1,43 @@
+// const targetLanguageId = new mongoose.Types.ObjectId('6537dbadaf291dd8be4e171a');
+// const pipeline = [
+//   {
+//     $match: { Language_id: targetLanguageId }
+//   },
+//   {
+//     $group: {
+//       _id: "$Difficulty_level",
+//       count: { $sum: 1 }
+//     }
+//   },
+//   {
+//     $project: {
+//       _id: 0,
+//       difficulty_level: "$_id",
+//       total_score: {
+//         $multiply: ["$count", "$_id"]
+//       }
+//     }
+//   },
+//   {
+//     $group: {
+//       _id: null,
+//       totalScore: { $sum: "$total_score" }
+//     }
+//   },
+//   {
+//     $project: {
+//       _id: 0
+//     }
+//   }
+// ];
+
+// Execute the aggregation pipeline
+// Questions.aggregate(pipeline)
+//   .exec()
+//   .then((result) => {
+//     console.log(` \n THis is the result of the aggregation pipeline \n`)
+//     console.log(result);
+//   })
+//   .catch((error) => {
+//     console.error("Error in aggregation: " + error);
+//   });

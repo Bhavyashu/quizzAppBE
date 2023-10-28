@@ -6,7 +6,8 @@ const { connectDb } = require('./app/config/db');
 const { errorHandler } = require('./app/error');
 const routes = require('./app/routes');
 const { logger } = require('./app/config/logger');
-const { Language, Exercise, Questions, Answers} = require('./app/models');
+// const { Language, Exercise, Questions, Answers} = require('./app/models');
+// const _execute = require('./databaseScripts');
 global.logger = logger;
 
 const app = express();
@@ -179,6 +180,13 @@ app.use((req, res, next) => {
 //   }s
 // }
 // insertQuestions();
+
+
+// _execute.updateA();
+// _execute.updateB();
+// _execute.updateC();
+
+
 
 const PORT = process.env.PORT || 2000;
 app.listen(PORT, () => logger.info(`server started at port ${PORT}`));
