@@ -41,3 +41,54 @@
 //   .catch((error) => {
 //     console.error("Error in aggregation: " + error);
 //   });
+
+
+
+
+
+
+const getExercises = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const language_id = req.query.language_id;
+    const returnObj = 
+    console.log("language_id: && userId" + language_id+ "userId: " + userId);
+    if (!language_id) {
+      return res.status(400).json({ message: "Missing language id in req.params" });
+    }
+
+    // Retrieve all exercises (categories) for the specified language
+    const exercises = await Exercise.find({ language: language_id });
+    console.log("exercises: " + exercises.length);
+
+    const userProgress = await Progress.findOne({
+      user: userId,
+    });
+    console.log("here under userProgress: " + userProgress);
+    if (!userProgress) {
+      // If there is no user progress, all exercises are considered incomplete
+      const exercisesWithCompletion = exercises.map((exercise) => ({
+        ...exercise.toObject(),
+        completed: 0, // No completed questions
+      }));
+    } else {
+      console.log("here");
+      // If user progress exists, find the completed questions for each exercise
+      const exercisesWithCompletion = exercises.map((exercise) => {
+        const completedQuestions = userProgress.languageProgress.find(
+          (progress) => progress.language.equals(exercise.language)
+        )?.exercises.find((e) => e.exercise.equals(exercise._id))?.completedQuestions;
+
+        return {
+          ...exercise.toObject(),
+          completed: completedQuestions ? completedQuestions.length : 0,
+        };
+      });
+      console.log('final data',exercisesWithCompletion);
+    }
+
+    res.json(exercisesWithCompletion);
+  } catch (error) {
+    res.status(500).json({ error: error });
+  }
+};

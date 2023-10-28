@@ -68,8 +68,21 @@ function getRandomWordsWithoutRepetition(array, numWords) {
 
 const addOptions = function(options){
   const randomWords = getRandomWordsWithoutRepetition(wordsArray, 3);
+
   options = [...options, ...randomWords];
+  const swapIndex = getRandomIndex()
+  const tempAnswer = options[0];
+  options[0] = options[swapIndex];
+  options[swapIndex] = tempAnswer;
+
   return options;
+}
+
+
+function getRandomIndex() {
+  const min = 1;
+  const max = 3;
+  return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
 module.exports = {addOptions, calculatePercentage}

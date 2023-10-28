@@ -20,8 +20,6 @@ app.get('/test', (req, res) => {
   res.status(200).json({ message: 'api working' });
 });
 
-app.use('/api/v1', routes);
-
 app.use(errorHandler);
 
 // require('./app/error/handleUncaughtErrors');
@@ -30,6 +28,7 @@ app.use(errorHandler);
 app.use((req, res, next) => {
   const allowedOrigins = ['http://localhost:3000'];
   const origin = req.headers.origin;
+  console.log( `This is the origin ${allowedOrigins}`);
 
   if (allowedOrigins.includes(origin)) {
     res.header('Access-Control-Allow-Origin', origin);
@@ -41,6 +40,7 @@ app.use((req, res, next) => {
   next();
 });
 
+app.use('/api/v1', routes);
 
 // app.post('/addl', async (req, res) => {
 //   try {
