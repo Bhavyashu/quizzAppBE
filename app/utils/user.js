@@ -1,5 +1,5 @@
 const { User, Exercise, Language, Questions, Answers } = require("../models");
-
+const asyncHandler = require("express-async-handler");
 const getLanguagesId = async(preferredLanguages) =>{
     try {
       // Fetch all languages with name and _id fields
@@ -21,4 +21,20 @@ const getLanguagesId = async(preferredLanguages) =>{
     }
 };
 
-module.exports = {getLanguagesId}
+const addLangDetails = async (userId, userData) => {
+    console.log("this is userId:", userId);
+    const user = await User.findById(userId).select('preffered_languge');
+    // console.log(`this is the user data`, user)
+    // Find the preferred language for the given langId
+    userData.forEach((languageSection)=>{
+    const preferredLanguage = user.preffered_languge.find(
+      (language) => (language.language.toString()==languageSection._id.toString())
+    );
+    languageSection.score = preferredLanguage?.score;
+    languageSection.proficiency = preferredLanguage?.proficiency;
+    });
+    return userData
+};
+
+
+module.exports = {getLanguagesId, addLangDetails}

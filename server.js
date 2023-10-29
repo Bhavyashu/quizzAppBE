@@ -7,7 +7,8 @@ const asyncHandler = require('express-async-handler');
 const { errorHandler } = require('./app/error');
 const routes = require('./app/routes');
 const { logger } = require('./app/config/logger');
-// const { Language, Exercise, Questions, Answers} = require('./app/models');
+const { Language, Exercise, Questions, Answers, Progress, User} = require('./app/models');
+const { getLanguageDetails } = require('./app/utils/user');
 // const _execute = require('./databaseScripts');
 global.logger = logger;
 

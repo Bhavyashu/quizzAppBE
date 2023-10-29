@@ -1,12 +1,13 @@
 const asyncHandler = require("express-async-handler");
 const bcrypt = require("bcrypt");
-const { User, Exercise, Language, Questions, Answers } = require("../models"); // Assuming you have a User model
+const { User, Exercise, Language, Questions, Answers, Progress } = require("../models"); // Assuming you have a User model
 const { Success, HttpError } = require("../utils/httpResponse");
 const { errors: err } = require("../error/errors");
 const { generateToken } = require("../middlewares/auth");
 const { calculatePercentage } = require("../utils/utils");
 const { getLanguages } = require("./quiz");
-const { getLanguagesId } = require("../utils/user");
+const { getLanguagesId, addLangDetails } = require("../utils/user");
+const mongoose = require("mongoose");
 // const { getProgressPerLanguage, getProgress } = require("../utils/userProgress");
 
 // User registration route
@@ -66,7 +67,7 @@ const login = asyncHandler(async (req, res, next) => {
 // User profile route (protected by JWT)
 const profile = asyncHandler(async (req, res, next) => {
   const user = req.user.id;
-
+  console.log(user);
   const userDetails = await User.findOne({ _id: user })
     .select(" -_id -password -__v")
     .populate({
@@ -115,48 +116,75 @@ const addLanguage = asyncHandler(async (req, res, next) => {
 
 const progress = asyncHandler(async (req, res, next) => {
   const userId = req.user.id;
-  const user = await User.findById(userId);
+  const userData = await Progress.aggregate([
+    {
+      $match: { 'user': new mongoose.Types.ObjectId(userId) }
+    },
+    {
+      $unwind: '$languageProgress'
+    },
+    {
+      $unwind: '$languageProgress.exercises'
+    },
+    {
+      $lookup: {
+        from: 'languages',
+        localField: 'languageProgress.language',
+        foreignField: '_id',
+        as: 'languageDetails'
+      },
+    },
+    {
+      $lookup: {
+        from: 'exercises',
+        localField: 'languageProgress.exercises.exercise',
+        foreignField: '_id',
+        as: 'exerciseInfo',
+      },
+    },
+    {
+      $project: {
+        'langid': '$languageProgress.language',
+        'langScore': { $arrayElemAt: ['$languageDetails.total_score', 0] },
+        'langname': { $arrayElemAt: ['$languageDetails.name', 0] },
+        'exerciseName': { $arrayElemAt: ['$exerciseInfo.name', 0] },
+        'completedQuestions': { $size: '$languageProgress.exercises.completedQuestions' },
+        'totalQuestions': { $arrayElemAt: ['$exerciseInfo.Questions', 0] },
+      },
+    },
+    {
+      $group: {
+        _id: '$langid',
+        name: { $first: '$langname' },
+        total_score: { $first: '$langScore' },
+        userProgress: {
+          $push: {
+            exerciseName: '$exerciseName',
+            completedQuestions: '$completedQuestions',
+            totalQuestions: '$totalQuestions',
+          },
+        },
+      },
+    },
+    {
+      $addFields: {
+        totalCompletedQuestions: {
+          $sum: '$userProgress.completedQuestions',
+        },
+      },
+    },
+    {
+      $sort: { totalCompletedQuestions: -1 },
+    },
+    {
+      $unset : 'totalCompletedQuestions'
+    },
+  ]);
 
-  const { preffered_languge } = user;
+  const data = await addLangDetails(userId, userData);
+  // console.log(data);
 
-  const LanguagesId = [];
-  preffered_languge.forEach((obj) => {
-    LanguagesId.push(obj.language);
-  });
-
-  console.log(LanguagesId)
-
-  // const responseObj = await getProgress(userId, LanguagesId);
-
-  // console.log("\n UserAnswersFoun", userAnswers.length, "\n");
-  // let counter = 0;
-  // for (const answer of userAnswers) {
-  //   const languageId = answer.Language_id;
-  //   const exerciseId = answer.Exercise_id;
-
-  //   const exercise = await Exercise.findById(exerciseId);
-  //   const totalQuestions = Questions.countDocuments({
-  //     Exercise_id : exerciseId
-  //   })
-  //   const language = await Language.findById(languageId);
-
-  //   // console.log(`\n This is the userprogress object ${userProgress} \n`);
-  //   if (!userProgress[language.name]) {
-  //     userProgress[language.name] = {};
-  //   }
-
-  //   // Count the number of answers for this exercise and language
-  //   const count = await Answers.countDocuments({
-  //     user: userId,
-  //     Language_id: languageId,
-  //     Exercise_id: exerciseId,
-  //   });
-  //   const percentage = ((count / totalQuestions) * 100).toFixed(2) + "%";
-
-  //   userProgress[language.name][exercise.name] = { percentage };
-  // }
-
-  const response = new Success("User Details", {}, 200);
+  const response = new Success("User Details", data, 200);
   res.status(response.statusCode).json(response);
 });
 module.exports = {
