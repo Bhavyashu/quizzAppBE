@@ -85,6 +85,7 @@ const addLanguages = async (req, res) => {
 const addExercises = async (req, res) => {
   try{
   const {language_id, name, description}  = req.body;
+  const LanguageRecord = await Language.findById(language_id);
 
   const result = new Exercise({
     name,
@@ -93,6 +94,10 @@ const addExercises = async (req, res) => {
   });
 
   await result.save();
+
+  LanguageRecord.exercises+=1;
+  LanguageRecord.save();
+
   if (result) {
     // Send a success response
     console.log("this is the result for adding languages", result ,"\n");
@@ -117,9 +122,7 @@ const addQuestions = async (req, res) => {
     const {Language_id, Exercise_id, Question, Answer, Difficulty_level, }  = req.body;
 
     const ExerciseRecord = await Exercise.findById(Exercise_id);
-    ExerciseRecord.Questions +=1;
-    ExerciseRecord.save();
-  
+    
     const result = new Questions({
       Language_id, 
       Exercise_id, 
@@ -127,11 +130,19 @@ const addQuestions = async (req, res) => {
       Answer, 
       Difficulty_level
     });
-  
+    
     await result.save();
+
+    const LanguageRecord = await Language.findById(Language_id);
+    ExerciseRecord.Questions +=1;
+    LanguageRecord.total_questions+=1
+    LanguageRecord.total_score+=1;
+    ExerciseRecord.save();
+    LanguageRecord.save();
+
     if (result) {
       // Send a success response
-      console.log("this is the result for adding languages", result ,"\n");
+      // console.log("this is the result for adding languages", result ,"\n");
       res
         .status(200)
         .json({ success: true, message: "Question added successfully", result: result });

@@ -1,12 +1,22 @@
 const asyncHandler = require("express-async-handler");
 const bcrypt = require("bcrypt");
-const { User, Exercise, Language, Questions, Answers, Progress } = require("../models"); // Assuming you have a User model
+const {
+  User,
+  Exercise,
+  Language,
+  Questions,
+  Answers,
+  Progress,
+} = require("../models"); // Assuming you have a User model
 const { Success, HttpError } = require("../utils/httpResponse");
 const { errors: err } = require("../error/errors");
 const { generateToken } = require("../middlewares/auth");
 const { calculatePercentage } = require("../utils/utils");
-const { getLanguages } = require("./quiz");
-const { getLanguagesId, addLangDetails } = require("../utils/user");
+const {
+  getLanguagesId,
+  addLangDetails,
+  getUserLanguages,
+} = require("../utils/user");
 const mongoose = require("mongoose");
 // const { getProgressPerLanguage, getProgress } = require("../utils/userProgress");
 
@@ -84,7 +94,8 @@ const profile = asyncHandler(async (req, res, next) => {
 });
 
 const addLanguage = asyncHandler(async (req, res, next) => {
-  const { language: langId } = req.body;
+  console.log(req.body);
+  const { languageId: langId } = req.body;
   const userId = req.user.id;
   console.log(`user id ${userId}`);
 
@@ -106,11 +117,7 @@ const addLanguage = asyncHandler(async (req, res, next) => {
   // Save the user's profile with the updated language
   user.save();
 
-  const response = new Success(
-    "Language Added Successfully",
-    {},
-    200
-  );
+  const response = new Success("Language Added Successfully", {}, 200);
   res.status(response.statusCode).json(response);
 });
 
@@ -118,50 +125,52 @@ const progress = asyncHandler(async (req, res, next) => {
   const userId = req.user.id;
   const userData = await Progress.aggregate([
     {
-      $match: { 'user': new mongoose.Types.ObjectId(userId) }
+      $match: { user: new mongoose.Types.ObjectId(userId) },
     },
     {
-      $unwind: '$languageProgress'
+      $unwind: "$languageProgress",
     },
     {
-      $unwind: '$languageProgress.exercises'
+      $unwind: "$languageProgress.exercises",
     },
     {
       $lookup: {
-        from: 'languages',
-        localField: 'languageProgress.language',
-        foreignField: '_id',
-        as: 'languageDetails'
+        from: "languages",
+        localField: "languageProgress.language",
+        foreignField: "_id",
+        as: "languageDetails",
       },
     },
     {
       $lookup: {
-        from: 'exercises',
-        localField: 'languageProgress.exercises.exercise',
-        foreignField: '_id',
-        as: 'exerciseInfo',
+        from: "exercises",
+        localField: "languageProgress.exercises.exercise",
+        foreignField: "_id",
+        as: "exerciseInfo",
       },
     },
     {
       $project: {
-        'langid': '$languageProgress.language',
-        'langScore': { $arrayElemAt: ['$languageDetails.total_score', 0] },
-        'langname': { $arrayElemAt: ['$languageDetails.name', 0] },
-        'exerciseName': { $arrayElemAt: ['$exerciseInfo.name', 0] },
-        'completedQuestions': { $size: '$languageProgress.exercises.completedQuestions' },
-        'totalQuestions': { $arrayElemAt: ['$exerciseInfo.Questions', 0] },
+        langid: "$languageProgress.language",
+        langScore: { $arrayElemAt: ["$languageDetails.total_score", 0] },
+        langname: { $arrayElemAt: ["$languageDetails.name", 0] },
+        exerciseName: { $arrayElemAt: ["$exerciseInfo.name", 0] },
+        completedQuestions: {
+          $size: "$languageProgress.exercises.completedQuestions",
+        },
+        totalQuestions: { $arrayElemAt: ["$exerciseInfo.Questions", 0] },
       },
     },
     {
       $group: {
-        _id: '$langid',
-        name: { $first: '$langname' },
-        total_score: { $first: '$langScore' },
+        _id: "$langid",
+        name: { $first: "$langname" },
+        total_score: { $first: "$langScore" },
         userProgress: {
           $push: {
-            exerciseName: '$exerciseName',
-            completedQuestions: '$completedQuestions',
-            totalQuestions: '$totalQuestions',
+            exerciseName: "$exerciseName",
+            completedQuestions: "$completedQuestions",
+            totalQuestions: "$totalQuestions",
           },
         },
       },
@@ -169,7 +178,7 @@ const progress = asyncHandler(async (req, res, next) => {
     {
       $addFields: {
         totalCompletedQuestions: {
-          $sum: '$userProgress.completedQuestions',
+          $sum: "$userProgress.completedQuestions",
         },
       },
     },
@@ -177,7 +186,7 @@ const progress = asyncHandler(async (req, res, next) => {
       $sort: { totalCompletedQuestions: -1 },
     },
     {
-      $unset : 'totalCompletedQuestions'
+      $unset: "totalCompletedQuestions",
     },
   ]);
 
@@ -187,10 +196,57 @@ const progress = asyncHandler(async (req, res, next) => {
   const response = new Success("User Details", data, 200);
   res.status(response.statusCode).json(response);
 });
+
+const getLanguages = asyncHandler(async (req, res, next) => {
+  const userId = req.user.id;
+  const userData = await getUserLanguages(userId);
+  const languageIds = userData.preffered_languge.map(
+    (item) => item.language._id
+  );
+  const allLanguages = await getUserLanguages(userId, languageIds);
+  // const returnArrayObj = [];
+  res
+    .status(200)
+    .json({ preffered_languge: userData.preffered_languge, allLanguages });
+});
+
+const resetProgress = asyncHandler(async (req, res) => {
+  const { languageId: langId } = req.body;
+  const userId = req.user.id;
+
+  // Reset the user's score and proficiency for the specified language
+  const updateUserDocument = await User.updateOne(
+    { _id: userId, "preffered_languge.language": langId },
+    {
+      $set: {
+        "preffered_languge.$.score": 0,
+        "preffered_languge.$.proficiency": "Beginner",
+      },
+    }
+  );
+  console.log(`updated user successfully`, JSON.stringify(updateUserDocument,null, 2));
+
+  // Empty the completedQuestions array for exercises associated with langId
+  const updateUserProgress = await Progress.updateMany(
+    {
+      user: userId,
+      "languageProgress.language": langId,
+    },
+    {
+      $set: { "languageProgress.$.exercises.$[].completedQuestions": [] },
+    }
+  );
+  console.log(`updated user progress successfully`, JSON.stringify(updateUserProgress,null, 2));
+  
+  res.status(200).json({ message: "Successfully Reset the data" });
+});
+
 module.exports = {
   register,
   login,
   profile,
   addLanguage,
   progress,
+  getLanguages,
+  resetProgress,
 };

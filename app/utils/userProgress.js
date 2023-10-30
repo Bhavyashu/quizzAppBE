@@ -14,6 +14,7 @@ const {
 const { addOptions } = require("./utils");
 
 const answerCache = {};
+
 const getProgressPerLanguage = async (userId, langugeId) => {
   try {
     const pipeline = [

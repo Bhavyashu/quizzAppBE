@@ -13,7 +13,9 @@ router.post('/login', _controller.login);
 
 // User profile route (protected by JWT)
 router.get('/profile', verifyAccessToken, _controller.profile);
-router.post('/addLanguage', verifyAccessToken, _controller.addLanguage);
 router.get('/progress',verifyAccessToken, _controller.progress);
+router.post('/addLanguage', verifyAccessToken, _controller.addLanguage);
+router.get('/getLanguages', verifyAccessToken, _controller.getLanguages);   
+router.post('/resetProgress', verifyAccessToken, _controller.resetProgress);
 
 module.exports = router;

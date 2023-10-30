@@ -1,5 +1,7 @@
 const { User, Exercise, Language, Questions, Answers } = require("../models");
 const asyncHandler = require("express-async-handler");
+
+
 const getLanguagesId = async(preferredLanguages) =>{
     try {
       // Fetch all languages with name and _id fields
@@ -24,7 +26,7 @@ const getLanguagesId = async(preferredLanguages) =>{
 const addLangDetails = async (userId, userData) => {
     console.log("this is userId:", userId);
     const user = await User.findById(userId).select('preffered_languge');
-    // console.log(`this is the user data`, user)
+    
     // Find the preferred language for the given langId
     userData.forEach((languageSection)=>{
     const preferredLanguage = user.preffered_languge.find(
@@ -36,5 +38,22 @@ const addLangDetails = async (userId, userData) => {
     return userData
 };
 
-
-module.exports = {getLanguagesId, addLangDetails}
+const getUserLanguages = async(userId, excludeIds=false) =>{
+  try{
+  if(excludeIds){
+    const languages = await Language.find({ _id: { $nin: excludeIds } }).select("_id name total_score exercises questions total_questions");
+    return languages;
+  }else{
+  const userLanguages = await User.findById(userId)
+  .select("preffered_languge -_id ")
+  .populate({
+    path: "preffered_languge.language",
+    select: "name",
+  });
+  return userLanguages;
+}
+}catch(e){
+  console.log(e);
+}
+};
+module.exports = {getLanguagesId, addLangDetails, getUserLanguages}
