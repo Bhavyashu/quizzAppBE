@@ -1,7 +1,6 @@
 const express = require('express');
 const router = express.Router();
 const { verifyAccessToken } = require('../middlewares/auth');
-// Import user controller
 const _controller = require('../controllers/quiz');
 
 router.get('/languages', verifyAccessToken, _controller.getLanguages );

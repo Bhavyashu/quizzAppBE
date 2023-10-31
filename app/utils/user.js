@@ -1,4 +1,4 @@
-const { User, Exercise, Language, Questions, Answers } = require("../models");
+const { User, Language, } = require("../models");
 const asyncHandler = require("express-async-handler");
 
 

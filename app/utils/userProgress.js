@@ -15,48 +15,6 @@ const { addOptions } = require("./utils");
 
 const answerCache = {};
 
-const getProgressPerLanguage = async (userId, langugeId) => {
-  try {
-    const pipeline = [
-      {
-        $match: {
-          user: userId,
-          Language_id: langugeId,
-        },
-      },
-      {
-        $group: {
-          _id: "$Exercise_id",
-          count: { $sum: 1 },
-        },
-      },
-    ];
-
-    const exerciseProgress = await Answers.aggregate(pipeline);
-    // console.log(typeof exerciseProgress);
-    // console.log(`This is the exercises progress for ${userId} language ${langugeId} :  ${exerciseProgress}`);
-    // console.log(`\n This is the exercises progress ${JSON.stringify(exerciseProgress)} \n`);
-
-    const progressObject = {};
-    for (const item of exerciseProgress) {
-      const exerciseId = item._id;
-
-      // Lookup the Exercise name by Exercise_id
-      const exerciseData = await Exercise.findOne(
-        { _id: exerciseId },
-        { name: 1, _id: 0, Questions: 1 }
-      );
-
-      progressObject[exerciseData.name] =
-        ((item.count / exerciseData.Questions) * 100).toFixed(2) + "%";
-    }
-
-    // console.log("Exercise Progress:", progressObject);
-    return progressObject;
-  } catch (error) {
-    console.error("Error calculating exercise progress:", error);
-  }
-};
 
 const getProgress = async (userId, LanguagesId) => {
   const respObj = {};
@@ -90,42 +48,6 @@ const getExcercisesObject = async (langugeId) => {
   console.log("This is the eccercises map", excercises);
 };
 
-// const getCompletedQuestions = async(userId, languageId, exerciseId, questionId) =>{
-//     try {
-//       let userPerformance = await Progress.findOne({ user: userId });
-
-//       if (!userPerformance) {
-//         // If the user's performance data doesn't exist, you can create it.
-//         userPerformance = new Progress({
-//           user: userId,
-//           languageProgress: [],
-//         });
-//       }
-
-//       let languageProgress = userPerformance.languageProgress.find(lp => lp.language.equals(languageId));
-//       if (!languageProgress) {
-//         languageProgress = { language: languageId, exercises: [] };
-//         userPerformance.languageProgress.push(languageProgress);
-//       }
-
-//       let exerciseProgress = languageProgress.exercises.find(ep => ep.exercise.equals(exerciseId));
-//       if (!exerciseProgress) {
-//         exerciseProgress = { exercise: exerciseId, completedQuestions: [] };
-//         languageProgress.exercises.push(exerciseProgress);
-//       }
-
-//       if (!exerciseProgress.completedQuestions.includes(questionId)) {
-//         exerciseProgress.completedQuestions.push(questionId);
-//       }
-
-//       // Save the updated performance data back to the database
-//       const savedUserPerformance = await userPerformance.save();
-//       return savedUserPerformance;
-//     } catch (error) {
-//       // Handle errors
-//       console.error(error);
-//     }
-// }
 
 const getCompletedQuestions = asyncHandler(async (
   userId,
@@ -309,43 +231,6 @@ const updateProficiency = (user_score, total_score)=>{
   return proficiencyLabel
 };
 
-
-// const getNextQuestion = async (isCorrect, questionDifficulty, completedQuestions, allQuestions) => {
-//   if (completedQuestions.length === allQuestions.length) {
-//     return questionArray;
-//   }
-// }
-
-//   // console.log(questionDifficulty);
-
-//     for (let i = 0; i < allQuestions.length; i++) {
-//       const obj = allQuestions[i];
-//       // console.log("this is obj",obj);
-//       if (!userExcercises.includes(obj._id) && obj.Difficulty_level == questionDifficulty) {
-//         const nextQuestion = {
-//           qid: obj._id,
-//           Question: obj.Question,
-//           Answer: addOptions([obj.Answer]),
-//           Difficulty_level: obj.Difficulty_level
-//         };
-//         questionArray.push(nextQuestion);
-//         break;
-//       }
-//     };
-//     questionDifficulty--;
-//   }
-//   // allQuestions.forEach((obj) => {
-//   //   if(!userExcercises.includes(obj._id) ){
-//   //     console.log(true);
-//   //   }
-//   // });
-
-//   // forEach
-//   // console.log(` difficulty After : ${questionDifficulty} \n`);
-//   console.log("tis is the question array", questionArray.length);
-//   return questionArray;
-// };
-
 async function getQuestionsWithAnswers(eid) {
   if (answerCache[eid]) {
     // Return cached data if available
@@ -363,9 +248,7 @@ async function getQuestionsWithAnswers(eid) {
     return allQuestions;
   }
 }
-
 module.exports = {
-  getProgressPerLanguage,
   getProgress,
   getExcercisesObject,
   getCompletedQuestions,

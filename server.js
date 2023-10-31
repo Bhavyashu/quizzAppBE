@@ -21,7 +21,6 @@ app.get('/test', (req, res) => {
 app.use((req, res, next) => {
   const allowedOrigins = ['http://localhost:3000'];
   const origin = req.headers.origin;
-  console.log( `This is the origin ${allowedOrigins}`);
 
   if (allowedOrigins.includes(origin)) {
     res.header('Access-Control-Allow-Origin', origin);

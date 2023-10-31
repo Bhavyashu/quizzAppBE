@@ -17,6 +17,12 @@ const {
 
 
 
+/**
+ * Fetches and returns the user's preferred languages.
+ *
+ * @param {object} req - The request for fetching preferred languages.
+ * @param {object} res - The response containing the user's preferred languages.
+ */
 const getLanguages = asyncHandler(async (req, res, next) => {
   const userId = req.user.id;
   // If user_id is provided in the query params, retrieve user's preferred languages
@@ -36,7 +42,12 @@ const getLanguages = asyncHandler(async (req, res, next) => {
 
 
 
-
+/**
+ * Fetches and returns the exercises for a specific language.
+ *
+ * @param {object} req - The request to fetch exercises for a language.
+ * @param {object} res - The response containing exercises for the language.
+ */
 const getExercises = asyncHandler(async (req, res, next) => {
   const userId = req.user.id;
   console.log(userId);
@@ -84,7 +95,12 @@ const getExercises = asyncHandler(async (req, res, next) => {
 });
 
 
-
+/**
+ * Retrieves and provides the next question for a user to answer.
+ *
+ * @param {object} req - The request for getting the next question.
+ * @param {object} res - The response with the next question to be answered.
+ */
 const getQuestion = asyncHandler(async (req, res, next) => {
   const userId = req.user.id; 
   const exerciseId = req.query.eid; 
@@ -132,6 +148,13 @@ const getQuestion = asyncHandler(async (req, res, next) => {
 });
 
 
+/**
+ * Verifies the user's answer to a question and provides the next question based on the answer,
+ * will increase/decrease th difficulty level based on the user's answer and fetch the next question accordingly.
+ *
+ * @param {object} req - The request to verify the user's answer.
+ * @param {object} res - The response with the result of answer verification.
+ */
 const verifyAns = asyncHandler(async (req, res, next) => {
   const userId = req.user.id;
   const { qid, answer, excerId, difficulty, langId } = req.body;

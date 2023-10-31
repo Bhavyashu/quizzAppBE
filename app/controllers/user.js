@@ -16,7 +16,13 @@ const {
 const mongoose = require("mongoose");
 // const { getProgressPerLanguage, getProgress } = require("../utils/userProgress");
 
-// User registration route
+
+/**
+ * Registers a new user.
+ *
+ * @param {object} req - The user registration request.
+ * @param {object} res - The response to the user registration request.
+ */
 const register = asyncHandler(async (req, res) => {
   const { name, email, password, preferred_languages } = req.body;
 
@@ -38,7 +44,12 @@ const register = asyncHandler(async (req, res) => {
   res.status(response.statusCode).json(response);
 });
 
-// User login route
+/**
+ * Logs in an existing user.
+ *
+ * @param {object} req - The user login request.
+ * @param {object} res - The response to the user login request.
+ */
 const login = asyncHandler(async (req, res) => {
   const { email, password } = req.body;
   const responseObj = {};
@@ -70,7 +81,13 @@ const login = asyncHandler(async (req, res) => {
   res.status(response.statusCode).json(response);
 });
 
-// User profile route (protected by JWT)
+
+/**
+ * Fetches the user's profile.
+ *
+ * @param {object} req - The user profile request.
+ * @param {object} res - The response to the user profile request.
+ */
 const profile = asyncHandler(async (req, res) => {
   const user = req.user.id;
   console.log(user);
@@ -89,6 +106,14 @@ const profile = asyncHandler(async (req, res) => {
   res.status(response.statusCode).json(response);
 });
 
+
+
+/**
+ * Fetches the user's progress data.
+ *
+ * @param {object} req - The request to fetch user progress data.
+ * @param {object} res - The response to the progress data request.
+ */
 const progress = asyncHandler(async (req, res) => {
   const userId = req.user.id;
   const userData = await Progress.aggregate([
@@ -165,6 +190,14 @@ const progress = asyncHandler(async (req, res) => {
   res.status(response.statusCode).json(response);
 });
 
+
+
+/**
+ * Fetches the user's preferred languages.
+ *
+ * @param {object} req - The request to fetch preferred languages.
+ * @param {object} res - The response to the fetch languages request.
+ */
 const getLanguages = asyncHandler(async (req, res) => {
   const userId = req.user.id;
   const userData = await getUserLanguages(userId);
@@ -181,6 +214,13 @@ const getLanguages = asyncHandler(async (req, res) => {
   res.status(response.statusCode).json(response);
 });
 
+
+/**
+ * Adds a new language to the user's preferred languages.
+ *
+ * @param {object} req - The request to add a new language.
+ * @param {object} res - The response to the add language request.
+ */
 const addLanguage = asyncHandler(async (req, res) => {
   const { languageId: langId } = req.body;
 
@@ -236,6 +276,16 @@ const addLanguage = asyncHandler(async (req, res) => {
 });
 
 
+
+
+
+
+/**
+ * Resets the user's progress data for a specific language.
+ *
+ * @param {object} req - The request to reset language progress.
+ * @param {object} res - The response to the reset progress request.
+ */
 const resetProgress = asyncHandler(async (req, res) => {
   const { languageId: langId } = req.body;
   const userId = req.user.id;
