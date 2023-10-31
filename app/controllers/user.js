@@ -40,7 +40,7 @@ const register = asyncHandler(async (req, res) => {
   });
   await newUser.save();
 
-  const response = new Success("User created Successfully");
+  const response = new Success("User created Successfully",{},200);
   res.status(response.statusCode).json(response);
 });
 
@@ -235,7 +235,7 @@ const addLanguage = asyncHandler(async (req, res) => {
    
 
     const languageExists = user.preffered_languge.some((lang) =>
-      lang.language.equals(langId)
+      lang.language.toString() == (langId)
     );
    
 
