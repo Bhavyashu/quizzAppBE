@@ -1,5 +1,6 @@
 const { User } = require("../models/user"); // Assuming you have a User model
 const { Success, HttpError, isHttpError } = require("../utils/httpResponse");
+const {errors} = require("../error/errors");
 
 const verifyUser = async (req, res, next) => {
   const { email } = req.body;
@@ -8,14 +9,19 @@ const verifyUser = async (req, res, next) => {
   const emailRegex = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
 
   if (!emailRegex.test(email)) {
-    return res.status(400).json({
-      message: "Invalid email format. Please enter a valid email address.",
-    });
+    const{name, code} = errors[400];
+    const response = new HttpError('Invalid email format. Please enter a valid email address.',name,{},code)
+    return res.status(response.statusCode).json(response);
   }
 
   const existingUser = await User.findOne({ email });
+
   if (existingUser) {
-    return res.status(400).json({ message: "User already exists." });
+    console.log("this is the name and code");
+    const {name, code} = errors[400];
+    console.log("this is the name and code", name, code);
+    const response = new HttpError('User already exists.',name,{},code)
+    return res.status(response.statusCode).json(response);
   }
 
   // If the email format is valid, proceed to the next middleware

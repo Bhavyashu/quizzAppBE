@@ -60,7 +60,7 @@ const login = asyncHandler(async (req, res) => {
 
   if (!user) {
     const { name, code } = err[404];
-    throw new HttpError("Invalid Email", name, [], code);
+    throw new HttpError("Email address not found in databse check again", name, [], code);
   }
 
   const passwordMatch = await bcrypt.compare(password, user.password);
