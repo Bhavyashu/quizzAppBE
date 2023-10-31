@@ -2,10 +2,6 @@ const asyncHandler = require("express-async-handler");
 const bcrypt = require("bcrypt");
 const {
   User,
-  Exercise,
-  Language,
-  Questions,
-  Answers,
   Progress,
 } = require("../models"); // Assuming you have a User model
 const { Success, HttpError } = require("../utils/httpResponse");
@@ -21,7 +17,7 @@ const mongoose = require("mongoose");
 // const { getProgressPerLanguage, getProgress } = require("../utils/userProgress");
 
 // User registration route
-const register = asyncHandler(async (req, res, next) => {
+const register = asyncHandler(async (req, res) => {
   const { name, email, password, preferred_languages } = req.body;
 
   const saltRounds = 10;
@@ -43,7 +39,7 @@ const register = asyncHandler(async (req, res, next) => {
 });
 
 // User login route
-const login = asyncHandler(async (req, res, next) => {
+const login = asyncHandler(async (req, res) => {
   const { email, password } = req.body;
   const responseObj = {};
   const user = await User.findOne({ email }).populate({
@@ -75,7 +71,7 @@ const login = asyncHandler(async (req, res, next) => {
 });
 
 // User profile route (protected by JWT)
-const profile = asyncHandler(async (req, res, next) => {
+const profile = asyncHandler(async (req, res) => {
   const user = req.user.id;
   console.log(user);
   const userDetails = await User.findOne({ _id: user })
@@ -93,35 +89,7 @@ const profile = asyncHandler(async (req, res, next) => {
   res.status(response.statusCode).json(response);
 });
 
-const addLanguage = asyncHandler(async (req, res, next) => {
-  console.log(req.body);
-  const { languageId: langId } = req.body;
-  const userId = req.user.id;
-  console.log(`user id ${userId}`);
-
-  const user = await User.findById(userId);
-
-  const languageExists = user.preffered_languge.some((lang) =>
-    lang.language.equals(langId)
-  );
-
-  if (languageExists) {
-    const { name, code } = err[400];
-    throw new HttpError("Language Already In Use", name, [], code);
-  }
-
-  user.preffered_languge.push({
-    language: langId,
-  });
-
-  // Save the user's profile with the updated language
-  user.save();
-
-  const response = new Success("Language Added Successfully", {}, 200);
-  res.status(response.statusCode).json(response);
-});
-
-const progress = asyncHandler(async (req, res, next) => {
+const progress = asyncHandler(async (req, res) => {
   const userId = req.user.id;
   const userData = await Progress.aggregate([
     {
@@ -197,18 +165,76 @@ const progress = asyncHandler(async (req, res, next) => {
   res.status(response.statusCode).json(response);
 });
 
-const getLanguages = asyncHandler(async (req, res, next) => {
+const getLanguages = asyncHandler(async (req, res) => {
   const userId = req.user.id;
   const userData = await getUserLanguages(userId);
+
   const languageIds = userData.preffered_languge.map(
-    (item) => item.language._id
+    (item) => item.language
   );
   const allLanguages = await getUserLanguages(userId, languageIds);
   // const returnArrayObj = [];
-  res
-    .status(200)
-    .json({ preffered_languge: userData.preffered_languge, allLanguages });
+  const responseData = {
+     preffered_languge: userData.preffered_languge, allLanguages
+  }
+  const response = new Success("Language Added Successfully", responseData, 200);
+  res.status(response.statusCode).json(response);
 });
+
+const addLanguage = asyncHandler(async (req, res) => {
+  const { languageId: langId } = req.body;
+
+  if(!langId){
+    const { name, code } = err[400];
+    throw new HttpError("required language",name,langId,code);
+  }
+  const userId = req.user.id;
+  
+
+    const user = await User.findById(userId);
+   
+
+    const languageExists = user.preffered_languge.some((lang) =>
+      lang.language.equals(langId)
+    );
+   
+
+    if (languageExists) {
+   
+     const {name, code} = err[400];
+      const errorResponse = new HttpError(
+        "Language Already In Use",
+        name,
+        [],
+        code
+      );
+      return res.status(errorResponse.statusCode).json(errorResponse);
+    }
+   
+
+    // Language doesn't exist, add it
+    user.preffered_languge.push({
+      language: langId,
+    });
+   
+
+    // Save the user's profile with the updated language
+    const savedSuccessfully = await user.save();
+   
+
+    const responseData ={
+      acknowledged : (savedSuccessfully)?true:false,
+    }
+   
+    // Language added successfully response
+    const successResponse = new Success(
+      "Language Added Successfully",
+      responseData,
+      200
+    );
+    res.status(successResponse.statusCode).json(successResponse);
+});
+
 
 const resetProgress = asyncHandler(async (req, res) => {
   const { languageId: langId } = req.body;
@@ -236,9 +262,9 @@ const resetProgress = asyncHandler(async (req, res) => {
       $set: { "languageProgress.$.exercises.$[].completedQuestions": [] },
     }
   );
-  console.log(`updated user progress successfully`, JSON.stringify(updateUserProgress,null, 2));
-  
-  res.status(200).json({ message: "Successfully Reset the data" });
+
+  const response = new Success("Language Data Reset Successfully", updateUserProgress, 200);
+  res.status(response.statusCode).json(response);
 });
 
 module.exports = {

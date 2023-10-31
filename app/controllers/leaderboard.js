@@ -1,9 +1,12 @@
 const { User, Language } = require("../models");
+const { Success, HttpError } = require("../utils/httpResponse");
+const { errors: err } = require("../error/errors");
 const mongoose = require("mongoose");
+const asyncHandler = require("express-async-handler");
+const { Http } = require("winston/lib/winston/transports");
 
 // Get the leaderboard based on overall score
-async function globalBoard(req, res) {
-  try {
+const globalBoard = asyncHandler(async(req, res) =>{
     const leaderboard = await User.aggregate([
       {
         $match: {
@@ -59,18 +62,20 @@ async function globalBoard(req, res) {
       },
     ]);
 
-    res.status(200).json(leaderboard);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Internal Server Error" });
-  }
-}
+    if(!leaderboard){
+      const {name , code } = err[500]
+      throw new HttpError("Failed to fetch the leaderboard data", name, leaderboard,code );
+    }
+    const response =  new Success("Leaderboard Data fetched successfully", leaderboard, 200);
+
+    res.status(200).json(response);
+  });
 
 // Get the leaderboard based on a specific language
-async function languageBoard(req, res) {
+const languageBoard = asyncHandler(async(req, res) =>{
   const { lid: lanId } = req.query;
   const languageId = new mongoose.Types.ObjectId(lanId);
-  try {
+
     const leaderboard = await User.aggregate([
       {
         $match: {
@@ -132,13 +137,14 @@ async function languageBoard(req, res) {
       },
     ]);
 
-    console.log("this is the result of the query", leaderboard);
-    res.status(200).json(leaderboard);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Internal Server Error" });
-  }
-}
+    if(!leaderboard){
+      const {name , code } = err[500]
+      throw new HttpError(`Failed to fetch the leaderboard for the language ${languageId}`, name, leaderboard,code );
+    }
+    const response =  new Success("Leaderboard Data fetched successfully", leaderboard, 200);
+
+    res.status(200).json(response);
+  });
 
 module.exports = {
   globalBoard,

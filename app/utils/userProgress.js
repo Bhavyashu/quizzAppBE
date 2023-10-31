@@ -255,10 +255,6 @@ const updateScore = asyncHandler(async(userId, languageId, addPoints) => {
     const user = await User.findById(userId);
     const { total_score } = await Language.findById(languageId);
 
-    if (!user) {
-      throw new Error("User not found");
-    }
-
     const preferredLanguageEntry = user.preffered_languge.find(
       (entry) => entry.language.toString() === languageId.toString()
     );

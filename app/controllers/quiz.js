@@ -3,15 +3,19 @@ const { Success, HttpError } = require("../utils/httpResponse");
 const { errors: err } = require("../error/errors");
 
 // models 
-const { User, Questions, Language, Exercise, Progress } = require("../models/");
+const { User, Questions, Exercise, Progress } = require("../models/");
 const { addOptions } = require("../utils/utils");
 
+
+//util functions for user handling
 const {
   getCompletedQuestions,
   getNextQuestion,
   getQuestionsWithAnswers,
   updateScore,
 } = require("../utils/userProgress");
+
+
 
 const getLanguages = asyncHandler(async (req, res, next) => {
   const userId = req.user.id;
@@ -29,6 +33,8 @@ const getLanguages = asyncHandler(async (req, res, next) => {
   );
   res.status(response.statusCode).json(response);
 });
+
+
 
 
 const getExercises = asyncHandler(async (req, res, next) => {
@@ -55,7 +61,6 @@ const getExercises = asyncHandler(async (req, res, next) => {
       completed: 0, // No completed questions
     }));
   } else {
-    console.log("here");
     // If user progress exists, find the completed questions for each exercise
     returnObj = exercises.map((exercise) => {
       const completedQuestions = userProgress.languageProgress
@@ -69,7 +74,7 @@ const getExercises = asyncHandler(async (req, res, next) => {
         completed: completedQuestions ? completedQuestions.length : 0,
       };
     });
-    // console.log("FInal data :", returnObj);
+    
   }
   const response = new Success(
     "Languages for the user fetched Successfully",
@@ -78,16 +83,18 @@ const getExercises = asyncHandler(async (req, res, next) => {
   res.status(response.statusCode).json(response);
 });
 
+
+
 const getQuestion = asyncHandler(async (req, res, next) => {
-  const userId = req.user.id; // You should have user information in your request, adjust as needed
-  const exerciseId = req.query.eid; // Replace with the actual exercise ID
-  console.log(`this is the exerciseId : ${exerciseId}`);
+  const userId = req.user.id; 
+  const exerciseId = req.query.eid; 
+
   let languageId = req.query.lid || 0;
-  console.log(`this is the languageId : ${!languageId}`);
-  // console.log(exerciseId);
+
   languageId = !languageId
     ? await Exercise.findById(exerciseId).select("language")
     : languageId;
+
   const answererdQuestions = await getCompletedQuestions(
     userId,
     languageId,
@@ -100,32 +107,43 @@ const getQuestion = asyncHandler(async (req, res, next) => {
         (completedQuestion) => completedQuestion._id
       ),
     },
-    Exercise_id: exerciseId, // Replace 'excerId' with the variable holding the value
-    Language_id: languageId, // Replace 'langId' with the variable holding the value
+    Exercise_id: exerciseId, 
+    Language_id: languageId, 
   })
     .select("-__v")
     .sort({ Difficulty_level: 1 })
     .limit(1)
     .exec();
 
-  if (unansweredQuestion) {
+  if(!unansweredQuestion){
+    const {name , code } = err[500]
+    throw new HttpError(`couldn't get the questions for the user ${userId}`, name, unansweredQuestion,code );
+  }
+
+  if (unansweredQuestion && unansweredQuestion.length > 0) {
     const unansweredQuestionObj = unansweredQuestion[0].toObject();
-    unansweredQuestionObj.Answer = addOptions([unansweredQuestionObj.Answer]);
-    res.status(200).json(unansweredQuestionObj);
+    unansweredQuestionObj.Answer = addOptions([unansweredQuestionObj?.Answer]);
+    const response =  new Success('Next question for the user fetched',{...unansweredQuestionObj},200);
+    res.status(response.statusCode).json(response);
   } else {
-    res
-      .status(200)
-      .json({ message: "No unanswered questions found for this exercise." });
+    const response =  new Success('No unanswered questions found for this exercise',{},200);
+    res.status(response.statusCode).json(response);
   }
 });
+
 
 const verifyAns = asyncHandler(async (req, res, next) => {
   const userId = req.user.id;
   const { qid, answer, excerId, difficulty, langId } = req.body;
-  // console.log("--------------------------------",qid, answer, excerId, difficulty, langId, "--------------------------------");
-  // console.log(typeof qid === "string");
+  
   const allQuestions = await getQuestionsWithAnswers(excerId);
-  console.log(allQuestions.length);
+
+  if(!allQuestions){
+    const {name , code } = err[500]
+    throw new HttpError(`Failed to verify the answered for the qid ${qid}`, name, allQuestions,code );
+  }
+ 
+
   let isCorrect = false;
 
   for (let i = 0; i < allQuestions.length; i++) {
@@ -138,13 +156,8 @@ const verifyAns = asyncHandler(async (req, res, next) => {
       }
       break;
     }
-    else{
-      console.log("inside else block");
-    }
   }
-  console.log(isCorrect);
 
-  // console.log(`\n ==============${testQuestion} ${correctAns} ${questionDifficulty} ${excerId} ${langId} =================================================================\n `)
 
   const completedQuestions = await getCompletedQuestions(
     userId,
@@ -153,16 +166,31 @@ const verifyAns = asyncHandler(async (req, res, next) => {
     isCorrect,
     qid
   );
-  // console.log("this is the useer questions \n ", completedQuestions);
-  const response = await getNextQuestion(
+  if(!completedQuestions){
+    const {name , code } = err[500]
+    throw new HttpError(`couldn't get the list of completed questions for the user ${userId}`, name, completedQuestions,code );
+  }
+
+
+  const nextQuestion = await getNextQuestion(
     isCorrect,
     difficulty,
     completedQuestions,
     allQuestions
   );
 
-  // console.log(completedQuestions);
-  res.json({ ...response[0], previousAnswer: isCorrect });
+  if(!nextQuestion){
+    const {name , code } = err[500]
+    throw new HttpError(`couldn't get the next question for the user ${userId}`, name, nextQuestion,code );
+  }
+
+  const respoData = {
+    ...nextQuestion[0],
+    previousAnswer: isCorrect
+  }
+  
+  const response =  new Success("Leaderboard Data fetched successfully", respoData, 200);
+  res.status(response.statusCode).json(response);
 });
 
 module.exports = {
