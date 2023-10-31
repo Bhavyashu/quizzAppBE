@@ -77,7 +77,7 @@ const addLanguages = asyncHandler(async (req, res) => {
 
   if (result) {
     const response = new Success(
-      "saved the language in the database now visible to all the users",
+      "Language added, visible to live users now",
       result,
       200
     );
@@ -121,7 +121,7 @@ const addExercises = asyncHandler(async (req, res) => {
     // increment the langauge data for that language
     LanguageRecord.exercises += 1;
     LanguageRecord.save();
-    const response = new Success("Exercises saved successfully", result, 200);
+    const response = new Success("Exercises added, visible to live users now", result, 200);
     res.status(response.statusCode).json(response);
   } else {
     const { name, code } = err[500];
@@ -165,11 +165,11 @@ const addQuestions = asyncHandler(async (req, res) => {
     const LanguageRecord = await Language.findById(Language_id);
     ExerciseRecord.Questions += 1;
     LanguageRecord.total_questions += 1;
-    LanguageRecord.total_score += 1;
+    LanguageRecord.total_score += Difficulty_level;
     ExerciseRecord.save();
     LanguageRecord.save();
 
-    const response = new Success("Exercises saved successfully", result, 200);
+    const response = new Success("Questions added, visible to live users now", result, 200);
     res.status(response.statusCode).json(response);
   } else {
     const { name, code } = err[500];
