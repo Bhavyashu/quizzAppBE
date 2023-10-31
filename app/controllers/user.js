@@ -14,6 +14,7 @@ const {
   getUserLanguages,
 } = require("../utils/user");
 const mongoose = require("mongoose");
+const { proficiencyLabels } = require("../utils/constants");
 // const { getProgressPerLanguage, getProgress } = require("../utils/userProgress");
 
 
@@ -289,18 +290,29 @@ const addLanguage = asyncHandler(async (req, res) => {
 const resetProgress = asyncHandler(async (req, res) => {
   const { languageId: langId } = req.body;
   const userId = req.user.id;
+  
+  // Find the user, unwind the specific preferred language entry, and update it
+  const userDocument = await User.findById(userId);
+  let languageData =  userDocument.preffered_languge.find(language => language.language.toString() === langId);
 
-  // Reset the user's score and proficiency for the specified language
-  const updateUserDocument = await User.updateOne(
-    { _id: userId, "preffered_languge.language": langId },
-    {
-      $set: {
-        "preffered_languge.$.score": 0,
-        "preffered_languge.$.proficiency": "Beginner",
-      },
-    }
-  );
-  console.log(`updated user successfully`, JSON.stringify(updateUserDocument,null, 2));
+
+  /*
+  Learnt something new here, 
+   since languageData is a circular mongoose object 
+   you need to subtract by converting it's associated key's value to it's type
+   alternative is you subtract and do manipulations then since your 
+   mongoose model for this collection is complex and has many datatypes it might missout on updates happened in few keys
+   so you need to mention mongoose that mark this keys as updated so it do the manipulations in the db document also
+    
+   // like this
+   //  userDocument.markModified('over_all_score');
+     
+   */
+
+  userDocument.over_all_score -= languageData.score.valueOf(); // convert to it's type to number and subtract from over all score of the user.
+  languageData.score=0;
+  languageData.proficiency = proficiencyLabels[0];
+  userDocument.save();
 
   // Empty the completedQuestions array for exercises associated with langId
   const updateUserProgress = await Progress.updateMany(

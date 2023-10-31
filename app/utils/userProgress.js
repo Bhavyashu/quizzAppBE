@@ -2,6 +2,7 @@ const mongoose = require("mongoose");
 const asyncHandler = require("express-async-handler");
 const { Success, HttpError } = require("../utils/httpResponse");
 const { errors: err } = require("../error/errors");
+const { proficiencyLabels } = require( "./constants");
 
 const {
   User,
@@ -204,13 +205,6 @@ const updateScore = asyncHandler(async(userId, languageId, addPoints) => {
 
 
 const updateProficiency = (user_score, total_score)=>{
-  const proficiencyLabels = [
-    "Beginner",
-    "Novice",
-    "Intermediate",
-    "Advanced",
-    "Expert",
-  ];
 
   // Calculate the range size based on the total_score
   const rangeSize = total_score / proficiencyLabels.length;
